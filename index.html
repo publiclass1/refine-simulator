@@ -9,13 +9,13 @@
         body {
             font-family: Arial, sans-serif;
             display: flex;
+            flex-direction: column;
         }
 
         #sidebar {
-            width: 300px;
+            width: 100%;
             padding: 10px;
             background: #f4f4f4;
-            height: 100vh;
             overflow-y: auto;
         }
 
@@ -71,6 +71,23 @@
 
         p {
             font-size: 1.2em;
+        }
+
+        #logs {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 20px;
+        }
+
+        @media (min-width: 600px) {
+            body {
+                flex-direction: row;
+            }
+
+            #sidebar {
+                width: 300px;
+                height: 100vh;
+            }
         }
     </style>
 </head>
@@ -194,7 +211,6 @@
             }
 
             itemToRepair.isBroken = false;
-            logAction(`Item ${itemToRepair.id} repaired`, 'success');
             updateUI();
         }
 
