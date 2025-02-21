@@ -1,95 +1,205 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Refinement Simulator</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        #results { margin-top: 20px; }
-        .success { color: green; }
-        .fail { color: red; }
-    </style>
-</head>
-<body>
-    <h2>Refinement Simulator</h2>
-    <label for="costPerRefine">Cost per Refine:</label>
-    <input type="number" id="costPerRefine" value="1000" min="1">
-    <p id="currentLevel">Current Refine Level: <span class="success">+0</span></p>
-    <p id="totalCost">Total Cost: 0</p>
-    <p id="status">Status: Normal</p>
-    <button onclick="refineOne()">Refine One</button>
-    <button onclick="repairEquipment()">Repair Equipment</button>
-    <div id="results"></div>
-
-    <script>
-        let refineLevel = 0;
-        let totalCost = 0;
-        let isBroken = false;
-        const maxRefine = 15;
-
-        function updateUI() {
-            let refineText = document.getElementById('currentLevel');
-            let levelClass = isBroken ? "fail" : "success";
-            refineText.innerHTML = `Current Refine Level: <span class='${levelClass}'>+${refineLevel}</span>`;
-            document.getElementById('totalCost').innerText = `Total Cost: ${totalCost}`;
-            document.getElementById('status').innerText = isBroken ? "Status: Broken (Repair needed)" : "Status: Normal";
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
         }
 
-        function getSuccessRate(level) {
-            if (level < 4) return 1.0; // +1 to +4 = 100%
-            if (level < 6) return 0.5; // +5 to +6 = 50%
-            return 0.4; // +7 to +15 = 40%
+        #sidebar {
+            width: 300px;
+            padding: 10px;
+            background: #f4f4f4;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        #main {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+        }
+
+        #results {
+            margin-top: 20px;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .fail {
+            color: red;
+        }
+
+        .broken {
+            color: red;
+        }
+
+        .downgrade {
+            color: orange;
+        }
+
+        .item {
+            padding: 10px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            margin: 5px 0;
+            font-size: 1.2em;
+        }
+
+        .selected {
+            background: #ddd;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1.2em;
+            margin: 10px;
+        }
+
+        input[type="number"] {
+            padding: 10px;
+            font-size: 1.2em;
+            margin: 10px;
+        }
+
+        p {
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="sidebar">
+        <h3>Item List</h3>
+        <label for="numRefine">Number of Items to Refine:</label>
+        <input type="number" id="numRefine" value="5" min="1" max="100" onchange="setItemCount()">
+        <div id="itemList"></div>
+    </div>
+    <div id="main">
+        <h2>Refinement Simulator</h2>
+        <label for="costPerRefine">Cost per Refine:</label>
+        <input type="number" id="costPerRefine" value="1000" min="1">
+        <p id="currentItem">Selected Item: <span id="selectedItem">1</span></p>
+        <p id="currentLevel">Current Refine Level: <span class="success">+0</span></p>
+        <p id="totalCost">Total Cost: 0</p>
+        <p id="status">Status: Normal</p>
+        <button onclick="refineOne()">Refine One</button>
+        <button onclick="repairSelectedItem()">Repair Selected Item</button>
+        <div id="results"></div>
+    </div>
+    <div id="logs">
+        <h3>Logs</h3>
+        <div id="logList"></div>
+    </div>
+
+    <script>
+        const maxRefine = 15;
+        let totalCost = 0;
+        let items = [];
+        let selectedItem = null;
+        let itemCount = parseInt(document.getElementById('numRefine').value);
+
+        function setItemCount() {
+            itemCount = parseInt(document.getElementById('numRefine').value);
+            items = [];
+            for (let i = 0; i < itemCount; i++) {
+                items.push({ id: i + 1, refineLevel: 0, isBroken: false });
+            }
+            populateItemList();
+            updateUI();
+        }
+
+        function populateItemList() {
+            let itemList = document.getElementById('itemList');
+            itemList.innerHTML = '';
+            items.forEach((item) => {
+                let div = document.createElement('div');
+                div.className = `item ${item.id === selectedItem ? 'selected' : ''}`;
+                div.innerHTML = `Item ${item.id} (Refine: <span class='${item.isBroken ? "broken" : "success"}'>+${item.refineLevel}</span>)`;
+                div.onclick = () => switchItem(item.id);
+                itemList.appendChild(div);
+            });
+        }
+
+        function switchItem(id) {
+            selectedItem = id;
+            updateUI();
+        }
+
+        function updateUI() {
+            let item = items.find(item => item.id === selectedItem);
+            if (item) {
+                document.getElementById('currentLevel').innerHTML = `Current Refine Level: <span class='${item.isBroken ? "broken" : "success"}'>+${item.refineLevel}</span>`;
+                document.getElementById('status').innerText = item.isBroken ? "Status: Broken (Repair needed)" : "Status: Normal";
+                document.getElementById('selectedItem').innerText = selectedItem;
+            }
+            document.getElementById('totalCost').innerText = `Total Cost: ${totalCost}`;
+            populateItemList();
+        }
+
+        function logAction(action, className) {
+            let logList = document.getElementById('logList');
+            let logEntry = document.createElement('div');
+            logEntry.className = className;
+            logEntry.innerText = action;
+            logList.prepend(logEntry);
         }
 
         function refineOne() {
-            if (isBroken) {
+            let item = items.find(item => item.id === selectedItem);
+            if (!item) return;
+
+            if (item.isBroken) {
                 alert("Equipment is broken! Repair it first.");
                 return;
             }
-            if (refineLevel >= maxRefine) {
+            if (item.refineLevel >= maxRefine) {
                 alert("Max refine level reached!");
                 return;
             }
-            
+
             let costPerRefine = parseInt(document.getElementById('costPerRefine').value);
-            let successRate = getSuccessRate(refineLevel);
-            let resultsDiv = document.getElementById('results');
-            totalCost += costPerRefine;
+            let successRate = item.refineLevel < 4 ? 1.0 : item.refineLevel < 6 ? 0.5 : 0.4;
             let success = Math.random() < successRate;
-            
+            totalCost += costPerRefine;
+
             if (success) {
-                refineLevel++;
-                resultsDiv.innerHTML = `<span class='success'>Success</span><br>` + resultsDiv.innerHTML;
+                item.refineLevel++;
+                logAction(`Item ${item.id} refined to +${item.refineLevel}`, 'success');
             } else {
-                refineLevel = Math.max(refineLevel - 1, 0); // Ensure it doesn't go below 0
-                if (refineLevel >= 4 && refineLevel <= 9) {
-                    if (Math.random() < 0.5) {
-                        isBroken = true;
-                        resultsDiv.innerHTML = `<span style='color: orange;'>Equipment Broken!</span><br>` + resultsDiv.innerHTML;
-                    } else {
-                        resultsDiv.innerHTML = `<span class='fail'>Fail (Level Decreased)</span><br>` + resultsDiv.innerHTML;
-                    }
-                } else if (refineLevel >= 10 && refineLevel <= 14) {
-                    isBroken = true;
-                    resultsDiv.innerHTML = `<span style='color: orange;'>Equipment Broken!</span><br>` + resultsDiv.innerHTML;
+                item.refineLevel = Math.max(item.refineLevel - 1, 0);
+                if ((item.refineLevel >= 4 && item.refineLevel <= 9 && Math.random() < 0.5) || item.refineLevel >= 10) {
+                    item.isBroken = true;
+                    logAction(`Item ${item.id} broke during refinement`, 'broken');
                 } else {
-                    resultsDiv.innerHTML = `<span class='fail'>Fail (Level Decreased)</span><br>` + resultsDiv.innerHTML;
+                    logAction(`Item ${item.id} refinement failed`, 'fail');
                 }
             }
-            
             updateUI();
         }
 
-        function repairEquipment() {
-            if (!isBroken) {
-                alert("Equipment is not broken.");
+        function repairSelectedItem() {
+            let itemToRepair = items.find(item => item.id === selectedItem);
+
+            if (!itemToRepair || !itemToRepair.isBroken) {
+                alert("Select a broken item to repair.");
                 return;
             }
-            isBroken = false;
+
+            itemToRepair.isBroken = false;
+            logAction(`Item ${itemToRepair.id} repaired`, 'success');
             updateUI();
-            alert("Equipment repaired! You can refine again.");
         }
+
+        setItemCount();
     </script>
 </body>
+
 </html>
