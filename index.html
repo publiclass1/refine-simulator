@@ -107,9 +107,21 @@
         <p id="currentLevel">Current Refine Level: <span class="success">+0</span></p>
         <p id="totalCost">Total Cost: 0</p>
         <p id="status">Status: Normal</p>
-        <button onclick="refineOne()">Refine One</button>
-        <button onclick="repairSelectedItem()">Repair Selected Item</button>
+        <button id="refineButton" onclick="refineOne()">Refine One</button>
+        <button id="repairButton" onclick="repairSelectedItem()" style="display: none;">Repair Selected Item</button>
         <div id="results"></div>
+        <div id="stats">
+            <h3>Stats</h3>
+            <p>Number of Fails: <span id="failCount">0</span></p>
+            <p>Number of Successes: <span id="successCount">0</span></p>
+            <p>Number of Repairs: <span id="repairCount">0</span></p>
+            <p>Number of Downgrades: <span id="downgradeCount">0</span></p>
+            <p>Total Items Used for Refinement: <span id="totalItemsUsed">0</span></p>
+            <p>Percentage of Fails: <span id="failPercentage">0%</span></p>
+            <p>Percentage of Successes: <span id="successPercentage">0%</span></p>
+            <p>Percentage of Repairs: <span id="repairPercentage">0%</span></p>
+            <p>Percentage of Downgrades: <span id="downgradePercentage">0%</span></p>
+        </div>
     </div>
     <div id="logs">
         <h3>Logs</h3>
@@ -122,6 +134,11 @@
         let items = [];
         let selectedItem = null;
         let itemCount = parseInt(document.getElementById('numRefine').value);
+        let failCount = 0;
+        let successCount = 0;
+        let repairCount = 0;
+        let downgradeCount = 0;
+        let totalItemsUsed = 0;
 
         function setItemCount() {
             itemCount = parseInt(document.getElementById('numRefine').value);
@@ -147,6 +164,11 @@
 
         function switchItem(id) {
             selectedItem = id;
+            failCount = 0;
+            successCount = 0;
+            repairCount = 0;
+            downgradeCount = 0;
+            totalItemsUsed = 0;
             updateUI();
         }
 
@@ -156,9 +178,12 @@
                 document.getElementById('currentLevel').innerHTML = `Current Refine Level: <span class='${item.isBroken ? "broken" : "success"}'>+${item.refineLevel}</span>`;
                 document.getElementById('status').innerText = item.isBroken ? "Status: Broken (Repair needed)" : "Status: Normal";
                 document.getElementById('selectedItem').innerText = selectedItem;
+                document.getElementById('refineButton').style.display = item.isBroken ? 'none' : 'inline-block';
+                document.getElementById('repairButton').style.display = item.isBroken ? 'inline-block' : 'none';
             }
             document.getElementById('totalCost').innerText = `Total Cost: ${totalCost}`;
             populateItemList();
+            updateStats();
         }
 
         function logAction(action, className) {
@@ -186,16 +211,20 @@
             let successRate = item.refineLevel < 4 ? 1.0 : item.refineLevel < 6 ? 0.5 : 0.4;
             let success = Math.random() < successRate;
             totalCost += costPerRefine;
+            totalItemsUsed++;
 
             if (success) {
                 item.refineLevel++;
+                successCount++;
                 logAction(`Item ${item.id} refined to +${item.refineLevel}`, 'success');
             } else {
+                failCount++;
                 item.refineLevel = Math.max(item.refineLevel - 1, 0);
                 if ((item.refineLevel >= 4 && item.refineLevel <= 9 && Math.random() < 0.5) || item.refineLevel >= 10) {
                     item.isBroken = true;
                     logAction(`Item ${item.id} broke during refinement`, 'broken');
                 } else {
+                    downgradeCount++;
                     logAction(`Item ${item.id} refinement failed`, 'fail');
                 }
             }
@@ -211,7 +240,27 @@
             }
 
             itemToRepair.isBroken = false;
+            repairCount++;
+            logAction(`Item ${itemToRepair.id} repaired`, 'success');
             updateUI();
+        }
+
+        function updateStats() {
+            document.getElementById('failCount').innerText = failCount;
+            document.getElementById('successCount').innerText = successCount;
+            document.getElementById('repairCount').innerText = repairCount;
+            document.getElementById('downgradeCount').innerText = downgradeCount;
+            document.getElementById('totalItemsUsed').innerText = totalItemsUsed;
+
+            let failPercentage = (failCount / totalItemsUsed) * 100 || 0;
+            let successPercentage = (successCount / totalItemsUsed) * 100 || 0;
+            let repairPercentage = (repairCount / totalItemsUsed) * 100 || 0;
+            let downgradePercentage = (downgradeCount / totalItemsUsed) * 100 || 0;
+
+            document.getElementById('failPercentage').innerText = `${failPercentage.toFixed(2)}%`;
+            document.getElementById('successPercentage').innerText = `${successPercentage.toFixed(2)}%`;
+            document.getElementById('repairPercentage').innerText = `${repairPercentage.toFixed(2)}%`;
+            document.getElementById('downgradePercentage').innerText = `${downgradePercentage.toFixed(2)}%`;
         }
 
         setItemCount();
