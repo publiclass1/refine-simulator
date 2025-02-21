@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refinement Simulator</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #results { margin-top: 20px; }
+        .success { color: green; }
+        .fail { color: red; }
+    </style>
+</head>
+<body>
+    <h2>Refinement Simulator</h2>
+    <label for="costPerRefine">Cost per Refine:</label>
+    <input type="number" id="costPerRefine" value="1000" min="1">
+    <p id="currentLevel">Current Refine Level: <span class="success">+0</span></p>
+    <p id="totalCost">Total Cost: 0</p>
+    <p id="status">Status: Normal</p>
+    <button onclick="refineOne()">Refine One</button>
+    <button onclick="repairEquipment()">Repair Equipment</button>
+    <div id="results"></div>
+
+    <script>
+        let refineLevel = 0;
+        let totalCost = 0;
+        let isBroken = false;
+        const maxRefine = 15;
+
+        function updateUI() {
+            let refineText = document.getElementById('currentLevel');
+            let levelClass = isBroken ? "fail" : "success";
+            refineText.innerHTML = `Current Refine Level: <span class='${levelClass}'>+${refineLevel}</span>`;
+            document.getElementById('totalCost').innerText = `Total Cost: ${totalCost}`;
+            document.getElementById('status').innerText = isBroken ? "Status: Broken (Repair needed)" : "Status: Normal";
+        }
+
+        function getSuccessRate(level) {
+            if (level < 4) return 1.0; // +1 to +4 = 100%
+            if (level < 6) return 0.5; // +5 to +6 = 50%
+            return 0.4; // +7 to +15 = 40%
+        }
+
+        function refineOne() {
+            if (isBroken) {
+                alert("Equipment is broken! Repair it first.");
+                return;
+            }
+            if (refineLevel >= maxRefine) {
+                alert("Max refine level reached!");
+                return;
+            }
+            
+            let costPerRefine = parseInt(document.getElementById('costPerRefine').value);
+            let successRate = getSuccessRate(refineLevel);
+            let resultsDiv = document.getElementById('results');
+            totalCost += costPerRefine;
+            let success = Math.random() < successRate;
+            
+            if (success) {
+                refineLevel++;
+                resultsDiv.innerHTML = `<span class='success'>Success</span><br>` + resultsDiv.innerHTML;
+            } else {
+                if (refineLevel >= 4 && refineLevel <= 9) {
+                    if (Math.random() < 0.5) {
+                        isBroken = true;
+                        resultsDiv.innerHTML = `<span style='color: orange;'>Equipment Broken!</span><br>` + resultsDiv.innerHTML;
+                    } else {
+                        refineLevel--;
+                        resultsDiv.innerHTML = `<span class='fail'>Fail (Level Decreased)</span><br>` + resultsDiv.innerHTML;
+                    }
+                } else if (refineLevel >= 10 && refineLevel <= 14) {
+                    isBroken = true;
+                    resultsDiv.innerHTML = `<span style='color: orange;'>Equipment Broken!</span><br>` + resultsDiv.innerHTML;
+                } else {
+                    refineLevel--;
+                    resultsDiv.innerHTML = `<span class='fail'>Fail (Level Decreased)</span><br>` + resultsDiv.innerHTML;
+                }
+            }
+            
+            updateUI();
+        }
+
+        function repairEquipment() {
+            if (!isBroken) {
+                alert("Equipment is not broken.");
+                return;
+            }
+            isBroken = false;
+            updateUI();
+            alert("Equipment repaired! You can refine again.");
+        }
+    </script>
+</body>
+</html>
