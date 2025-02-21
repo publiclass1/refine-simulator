@@ -62,19 +62,18 @@
                 refineLevel++;
                 resultsDiv.innerHTML = `<span class='success'>Success</span><br>` + resultsDiv.innerHTML;
             } else {
+                refineLevel = Math.max(refineLevel - 1, 0); // Ensure it doesn't go below 0
                 if (refineLevel >= 4 && refineLevel <= 9) {
                     if (Math.random() < 0.5) {
                         isBroken = true;
                         resultsDiv.innerHTML = `<span style='color: orange;'>Equipment Broken!</span><br>` + resultsDiv.innerHTML;
                     } else {
-                        refineLevel--;
                         resultsDiv.innerHTML = `<span class='fail'>Fail (Level Decreased)</span><br>` + resultsDiv.innerHTML;
                     }
                 } else if (refineLevel >= 10 && refineLevel <= 14) {
                     isBroken = true;
                     resultsDiv.innerHTML = `<span style='color: orange;'>Equipment Broken!</span><br>` + resultsDiv.innerHTML;
                 } else {
-                    refineLevel--;
                     resultsDiv.innerHTML = `<span class='fail'>Fail (Level Decreased)</span><br>` + resultsDiv.innerHTML;
                 }
             }
